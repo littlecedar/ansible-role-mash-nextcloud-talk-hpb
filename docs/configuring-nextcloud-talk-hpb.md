@@ -7,7 +7,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # Configuring Nextcloud Talk HPB
 
 This role deploys a Nextcloud Talk high-performance backend (HPB) on one node:
-the `nextcloud-spreed-signaling` server, the Janus MCU and NATS as their message bus.
+the `nextcloud-spreed-signaling` server and the Janus MCU. The NATS message bus they
+talk over is deployed by the `nats` role
+([`ansible-role-mash-nats`](https://github.com/littlecedar/ansible-role-mash-nats)),
+which must run before this one.
 
 It does **not** deploy coturn or Traefik. Those two are operator-provided and are
 referenced only through the contract described below.
@@ -37,12 +40,13 @@ referenced only through the contract described below.
 - Nextcloud with the Talk app.
 
 The role expects `com.devture.ansible.role.playbook_help` and
-`com.devture.ansible.role.systemd_docker_base` (provided by the MASH playbook) and
-the `community.docker` collection.
+`com.devture.ansible.role.systemd_docker_base` (provided by the MASH playbook), the
+`community.docker` collection, and the `nats` role installed from
+`git+https://github.com/littlecedar/ansible-role-mash-nats.git` at `v2.15.1-0`.
 
 ## Container images
 
-The role consumes three images built and published by this repository. The published
+The role consumes two images built and published by this repository. The published
 packages are public, so the default pulls need no registry login. If you mirror them to
 private packages, authenticate the target Docker daemon with a token that has
 `read:packages`.
@@ -50,19 +54,15 @@ private packages, authenticate the target Docker daemon with a token that has
 | Service | Default image | Pinned version |
 | --- | --- | --- |
 | Janus | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb:1.4.3` | Janus `1.4.3` (`1f0b75ca`) |
-| NATS | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-nats:2.15.1` | NATS `2.15.1` (`b2fd3efc`) |
 | Spreed signaling | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-spreed:2.1.1` | Spreed `2.1.1` (`e7a8fb7a`) |
 
-Overrides for the signaling and NATS images:
+Overrides for the signaling image:
 
 | Variable | Default |
 | --- | --- |
 | `nextcloud_talk_hpb_signaling_container_image` | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-spreed:{{ nextcloud_talk_hpb_signaling_container_image_tag }}` |
 | `nextcloud_talk_hpb_signaling_container_image_tag` | `2.1.1` |
 | `nextcloud_talk_hpb_signaling_container_image_pull` | `true` |
-| `nextcloud_talk_hpb_nats_container_image` | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-nats:{{ nextcloud_talk_hpb_nats_container_image_tag }}` |
-| `nextcloud_talk_hpb_nats_container_image_tag` | `2.15.1` |
-| `nextcloud_talk_hpb_nats_container_image_pull` | `true` |
 
 Overrides for Janus:
 
@@ -78,22 +78,22 @@ Janus has no `_container_image_pull` toggle: its image is pulled unless
 `nextcloud_talk_hpb_janus_container_image_self_build` is `true`, in which case the
 role clones `_self_build_repo` at `_self_build_repo_version`, builds it on the target
 with `build/janus/Dockerfile`, and tags the result as `_container_image`. Only Janus
-has this target-side self-build path; NATS and Spreed run published images, or local
-images with the matching `*_container_image_pull: false`.
+has this target-side self-build path; Spreed runs the published image, or a local image
+with `nextcloud_talk_hpb_signaling_container_image_pull: false`. The NATS image is built
+and published by the `ansible-role-mash-nats` repository.
 
-To upgrade NATS or Spreed, change `ARG NATS_VERSION`/`ARG NATS_COMMIT` or
-`ARG SPREED_VERSION`/`ARG SPREED_COMMIT` in the service Dockerfile, then update
-`nextcloud_talk_hpb_nats_container_image_tag` or
+To upgrade Spreed, change `ARG SPREED_VERSION`/`ARG SPREED_COMMIT` in
+`build/spreed/Dockerfile`, then update
 `nextcloud_talk_hpb_signaling_container_image_tag` in `defaults/main.yml` and the pin
 tables in this guide and the README. The publish workflow derives its tags from the
 Dockerfile ARGs; the role consumes the defaults tag. Janus upgrades are automated by
 `update-janus.sh` and its weekly workflow.
 
-The publish workflow builds all three images, runs their smoke tests and the molecule
+The publish workflow builds both images, runs their smoke tests and the molecule
 scenario, and only then pushes to GHCR. It runs on pushes to `main` and on manual
 dispatch. Every run pushes `sha-<short>`; `edge`, `latest` and the service version are
 pushed only when the ref is `main`, so a manual dispatch on another branch pushes just
-`sha-<short>`. CI builds and smoke-tests all three plus the molecule scenario on pull
+`sha-<short>`. CI builds and smoke-tests both plus the molecule scenario on pull
 requests and on manual dispatch, without pushing anything.
 
 ## Required variables
@@ -111,12 +111,25 @@ touching the host. These variables have no usable default and must be set:
 | `nextcloud_talk_hpb_signaling_hash_key` | Session checksum key; 32 or 64 bytes recommended (other lengths only warn) |
 | `nextcloud_talk_hpb_signaling_block_key` | Session encryption key; **must be 16, 24 or 32 bytes** (validated) |
 | `nextcloud_talk_hpb_signaling_internal_shared_secret_key` | Authenticates internal signaling clients |
-| `nextcloud_talk_hpb_nats_token` | Shared bearer token: NATS accepts it and the signaling server presents it |
 | `nextcloud_talk_hpb_uid` / `nextcloud_talk_hpb_gid` | Owner of the rendered support files |
 
+The bus contract is read from the `nats` role through three variables of this role, all
+of which default to that role's values:
+
+| Variable | Default |
+| --- | --- |
+| `nextcloud_talk_hpb_nats_token` | `{{ nats_token \| default('') }}` |
+| `nextcloud_talk_hpb_nats_hostname` | `{{ nats_identifier \| default('') }}` |
+| `nextcloud_talk_hpb_nats_network` | `{{ nats_container_network \| default('') }}` |
+
+Set them explicitly to use a bus that runs outside this playbook.
+`nextcloud_talk_hpb_nats_hostname` must equal `nats_identifier` when the `nats` unit
+runs in the same play, because the signaling unit requires
+`{{ nextcloud_talk_hpb_nats_hostname }}.service`.
+
 Validation rejects: empty required values, an invalid `public_ip`, a
-`nextcloud_url` without `http(s)://`, malformed subnets, a NATS address outside the
-HPB subnet, an egress gateway outside the egress subnet, a malformed or inverted
+`nextcloud_url` without `http(s)://`, malformed subnets, a missing NATS container
+network, an egress gateway outside the egress subnet, a malformed or inverted
 `janus_rtp_port_range`, missing Traefik label values while labels are enabled, the
 `allowall` backend mode without a secret, a missing external proxy network, and a
 `compose.yaml` at the role root.
@@ -125,41 +138,43 @@ HPB subnet, an egress gateway outside the egress subnet, a malformed or inverted
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `nextcloud_talk_hpb_hpb_network` | `nextcloud-talk-hpb-hpb` | Internal bridge; signaling + NATS |
-| `nextcloud_talk_hpb_hpb_subnet` | `172.28.0.0/24` | Must contain `nats_container_ip` |
-| `nextcloud_talk_hpb_nats_container_ip` | `172.28.0.4` | Fixed so the signaling NATS URL is stable |
 | `nextcloud_talk_hpb_egress_network` | `nextcloud-talk-hpb-egress` | Bridge; signaling + host-networking Janus |
 | `nextcloud_talk_hpb_egress_subnet` | `172.29.0.0/24` | Janus WebSocket ACL |
 | `nextcloud_talk_hpb_egress_gateway` | `172.29.0.1` | Janus WebSocket bind address |
 | `nextcloud_talk_hpb_proxy_network` | `proxy` | External; never created or deleted by this role |
 | `nextcloud_talk_hpb_proxy_network_subnet` | detected | Becomes the signaling `TRUSTED_PROXIES` |
 
-If `hpb_subnet` or `egress_subnet` conflict with something already on the host,
-override the subnet and its dependents together (`nats_container_ip`,
-`egress_gateway`); validation rejects inconsistent values.
+The signaling container also joins the `nats` role's internal network
+(`nats_container_network`, default `nats`), where it reaches the bus at
+`<nats_identifier>:4222`. That role creates and removes the network; this role only
+validates that it exists.
 
-Deletion flags: `nextcloud_talk_hpb_hpb_network_deletion_enabled` and
-`nextcloud_talk_hpb_egress_network_deletion_enabled` default to `true`.
+If `egress_subnet` conflicts with something already on the host, override it together
+with `egress_gateway`; validation rejects inconsistent values.
+
+The deletion flag `nextcloud_talk_hpb_egress_network_deletion_enabled` defaults to
+`true`.
 `nextcloud_talk_hpb_proxy_network_deletion_enabled` exists for a possible future
 migration and has no effect: the external proxy network is never removed.
 
 ## Secrets
 
 ```sh
-openssl rand -hex 32   # signaling_secret, turn_static_auth_secret, nats_token,
+openssl rand -hex 32   # signaling_secret, turn_static_auth_secret,
                        # signaling_internal_shared_secret_key
 openssl rand -hex 16   # signaling_hash_key, signaling_block_key
 ```
 
 In MASH these are derived from `mash_playbook_generic_secret_key` (see the README
-snippet). The rendered support files live in `nextcloud_talk_hpb_base_path`
-(`signaling.conf`, `janus.env`, `nats.conf`, `signaling.labels`); all are mode `0640`.
-`signaling.conf` and `nats.conf` are mounted read-only, `signaling.labels` is used as
+snippet). The NATS token is defined by the `nats` role and lives only in that role's
+`/nats/nats.conf`. This role's rendered support files live in
+`nextcloud_talk_hpb_base_path` (`signaling.conf`, `janus.env`, `signaling.labels`); all
+are mode `0640`. `signaling.conf` is mounted read-only, `signaling.labels` is used as
 Docker's label file, and `janus.env` is passed as an environment file. The signaling
-and NATS secrets stay in the mode-`0640` configuration files rather than in container
-environment variables. The Janus TURN secret is in `janus.env` and is therefore
-visible in `docker inspect` `Config.Env`; this role keeps all secrets out of journals,
-command lines, container logs and world-readable files.
+secrets stay in the mode-`0640` configuration file rather than in container environment
+variables. The Janus TURN secret is in `janus.env` and is therefore visible in
+`docker inspect` `Config.Env`; this role keeps all secrets out of journals, command
+lines, container logs and world-readable files.
 
 ## External relay proxy (Traefik)
 
@@ -230,7 +245,8 @@ same TURN secret. The role does not modify Nextcloud.
 | `443/tcp` | public (Traefik) |
 | `20000-40000/udp` | public (Janus RTP/RTCP; host networking) |
 | `3478/tcp+udp`, `49152-65535/udp` | public (your TURN server) |
-| `8081`, `8088`, `8188`, `4222` | **not** public |
+| `8081`, `8088`, `8188` | **not** public |
+| `4222` | internal `nats` network only (the bus publishes no host port) |
 
 Janus binds its HTTP API to `127.0.0.1:8088` and its WebSocket transport to
 `<egress_gateway>:8188`, with an ACL limited to the egress network. Janus matches ACL
@@ -244,20 +260,50 @@ topology instead of publishing the range.
 ## Operating
 
 ```sh
-systemctl status nextcloud-talk-hpb-{nats,signaling,janus}
-journalctl -u nextcloud-talk-hpb-nats -f
+systemctl status nextcloud-talk-hpb-{signaling,janus}
 journalctl -u nextcloud-talk-hpb-signaling -f
 journalctl -u nextcloud-talk-hpb-janus -f
 ```
 
-All three containers log through systemd (`--log-driver=none`).
+Both containers log through systemd (`--log-driver=none`).
 Restarting one unit recreates only that container. Changing a rendered support file,
 a unit file or an image sets `nextcloud_talk_hpb_restart_necessary`, which the MASH
 systemd service manager uses to restart the affected units.
 
-`nextcloud_talk_hpb_enabled: false` (plus a playbook run) stops and removes the three
-units, removes the role's own networks when their deletion flags are true, and
-removes `nextcloud_talk_hpb_base_path`. The external proxy network is untouched.
+`nextcloud_talk_hpb_enabled: false` (plus a playbook run) stops and removes the two
+units, removes the role's egress network when
+`nextcloud_talk_hpb_egress_network_deletion_enabled` is true, and removes
+`nextcloud_talk_hpb_base_path`. The external proxy network is untouched, and the NATS
+unit and its network are removed by the `nats` role.
+
+### Upgrading from 1.4.x
+
+Earlier releases deployed NATS themselves. To move an existing node onto the `nats`
+role:
+
+1. Stop and disable the old unit, remove it, and reload systemd:
+
+   ```sh
+   systemctl disable --now nextcloud-talk-hpb-nats.service
+   rm /etc/systemd/system/nextcloud-talk-hpb-nats.service
+   systemctl daemon-reload
+   ```
+
+2. Remove the old rendered configuration:
+
+   ```sh
+   rm /nextcloud-talk-hpb/nats.conf
+   ```
+
+3. Deploy the `nats` role with `nats_token` set to the previous
+   `nextcloud_talk_hpb_nats_token` value, so the existing token keeps working.
+4. Run this role. The signaling server now connects to
+   `nats://<nats_identifier>:4222` on the `nats` role's network.
+5. Remove the old internal network, which nothing uses any more:
+
+   ```sh
+   docker network rm nextcloud-talk-hpb-hpb
+   ```
 
 ## Troubleshooting
 
@@ -270,11 +316,13 @@ that has `read:packages`:
 echo "$GHCR_TOKEN" | docker login ghcr.io -u <github-user> --password-stdin
 ```
 
-Alternatively, publish the tag by running the publish workflow on `main`, or build the
-image locally (`docker build -t <image> build/<service>`) and set the matching
-`nextcloud_talk_hpb_signaling_container_image` or
-`nextcloud_talk_hpb_nats_container_image` with `*_container_image_pull: false`. Janus
-has no pull toggle and is always pulled from `nextcloud_talk_hpb_janus_container_image`
+This repository publishes the Janus and Spreed images; the NATS image comes from the
+`ansible-role-mash-nats` repository. Alternatively, publish the tag by running the
+publish workflow on `main`, or build the image locally
+(`docker build -t <image> build/<service>`) and set
+`nextcloud_talk_hpb_signaling_container_image` with
+`nextcloud_talk_hpb_signaling_container_image_pull: false`. Janus has no pull toggle
+and is always pulled from `nextcloud_talk_hpb_janus_container_image`
 unless self-build is enabled, so a locally tagged image alone is not enough: set
 `nextcloud_talk_hpb_janus_container_image_self_build: true` to build it from source on
 the target, or point `nextcloud_talk_hpb_janus_container_image` at a registry image the

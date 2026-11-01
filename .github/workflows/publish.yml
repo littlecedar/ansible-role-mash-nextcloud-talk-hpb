@@ -33,7 +33,7 @@ jobs:
         id: pin
         run: |
           set -eu
-          for service in janus nats spreed; do
+          for service in janus spreed; do
             file="build/${service}/Dockerfile"
             var=$(printf '%s' "$service" | tr '[:lower:]' '[:upper:]')_VERSION
             version=$(sed -n "s/^ARG ${var}=\(.*\)$/\1/p" "$file" | head -n 1)
@@ -63,17 +63,6 @@ jobs:
             type=raw,value=${{ steps.pin.outputs.janus_version }},enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Compute the NATS image tags
-        id: meta_nats
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}-nats
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=${{ steps.pin.outputs.nats_version }},enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
       - name: Compute the Spreed image tags
         id: meta_spreed
         uses: docker/metadata-action@v5
@@ -96,17 +85,6 @@ jobs:
           cache-from: type=gha,scope=janus
           cache-to: type=gha,mode=max,scope=janus
 
-      - name: Build the NATS image
-        uses: docker/build-push-action@v6
-        with:
-          context: build/nats
-          load: true
-          provenance: false
-          tags: nextcloud-talk-hpb-nats:ci
-          labels: ${{ steps.meta_nats.outputs.labels }}
-          cache-from: type=gha,scope=nats
-          cache-to: type=gha,mode=max,scope=nats
-
       - name: Build the Spreed image
         uses: docker/build-push-action@v6
         with:
@@ -121,9 +99,6 @@ jobs:
       # Nothing is pushed before the smoke tests and molecule pass.
       - name: Run the Janus smoke test
         run: ./scripts/smoke-test-janus.sh ansible-role-nextcloud-talk-hpb:ci
-
-      - name: Run the NATS smoke test
-        run: ./scripts/smoke-test-nats.sh nextcloud-talk-hpb-nats:ci
 
       - name: Run the Spreed smoke test
         run: ./scripts/smoke-test-spreed.sh nextcloud-talk-hpb-spreed:ci
@@ -155,7 +130,6 @@ jobs:
       - name: Push the image tags
         env:
           JANUS_TAGS: ${{ steps.meta_janus.outputs.tags }}
-          NATS_TAGS: ${{ steps.meta_nats.outputs.tags }}
           SPREED_TAGS: ${{ steps.meta_spreed.outputs.tags }}
         run: |
           set -eu
@@ -169,5 +143,4 @@ jobs:
             done
           }
           push_tags ansible-role-nextcloud-talk-hpb:ci "$JANUS_TAGS"
-          push_tags nextcloud-talk-hpb-nats:ci "$NATS_TAGS"
           push_tags nextcloud-talk-hpb-spreed:ci "$SPREED_TAGS"

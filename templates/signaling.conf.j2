@@ -19,7 +19,7 @@ blockkey = {{ nextcloud_talk_hpb_signaling_block_key }}
 internalsecret = {{ nextcloud_talk_hpb_signaling_internal_shared_secret_key }}
 
 [nats]
-url = nats://{{ nextcloud_talk_hpb_nats_token }}@{{ nextcloud_talk_hpb_nats_container_ip }}:4222
+url = nats://{{ nextcloud_talk_hpb_nats_token }}@{{ nextcloud_talk_hpb_nats_hostname }}:4222
 
 [mcu]
 type = janus

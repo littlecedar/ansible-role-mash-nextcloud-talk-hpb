@@ -102,33 +102,24 @@
         dockerfile: Dockerfile
         pull: true
 
-    - name: Ensure the NATS and Spreed build context directories exist
+    - name: Ensure the Spreed build context directory exists
       ansible.builtin.file:
-        path: "/tmp/hpb-{{ item }}"
+        path: /tmp/hpb-spreed
         state: directory
         mode: "0755"
-      loop:
-        - nats
-        - spreed
 
-    - name: Ensure the NATS and Spreed build contexts exist
+    - name: Ensure the Spreed build context exists
       ansible.builtin.copy:
-        src: "{{ nextcloud_talk_hpb_molecule_project_directory }}/build/{{ item }}/Dockerfile"
-        dest: "/tmp/hpb-{{ item }}/Dockerfile"
+        src: "{{ nextcloud_talk_hpb_molecule_project_directory }}/build/spreed/Dockerfile"
+        dest: /tmp/hpb-spreed/Dockerfile
         mode: "0644"
-      loop:
-        - nats
-        - spreed
 
-    - name: Ensure the NATS and Spreed images are built
+    - name: Ensure the Spreed image is built
       community.docker.docker_image_build:
-        name: "nextcloud-talk-hpb-{{ item }}:ci"
-        path: "/tmp/hpb-{{ item }}"
+        name: nextcloud-talk-hpb-spreed:ci
+        path: /tmp/hpb-spreed
         dockerfile: Dockerfile
         pull: true
-      loop:
-        - nats
-        - spreed
 
     - name: Ensure the Janus image source directory exists
       ansible.builtin.file:

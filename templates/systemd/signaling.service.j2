@@ -31,7 +31,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --security-opt=no-new-privileges \
       --init \
       --stop-signal=SIGUSR1 \
-      --network={{ nextcloud_talk_hpb_hpb_network }} \
+      --network={{ nextcloud_talk_hpb_nats_network }} \
       --publish={{ nextcloud_talk_hpb_signaling_container_http_host_bind_port }}:{{ nextcloud_talk_hpb_signaling_container_http_port }} \
       --mount type=bind,src={{ nextcloud_talk_hpb_base_path }}/signaling.conf,dst=/etc/signaling/server.conf,readonly \
       --label-file={{ nextcloud_talk_hpb_base_path }}/signaling.labels \

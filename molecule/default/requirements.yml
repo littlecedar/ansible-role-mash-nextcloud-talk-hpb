@@ -10,6 +10,9 @@ roles:
   - src: https://github.com/devture/com.devture.ansible.role.systemd_docker_base.git
     version: v1.5.0-0
     name: com.devture.ansible.role.systemd_docker_base
+  - src: https://github.com/littlecedar/ansible-role-mash-nats.git
+    version: v2.15.1-0
+    name: nats
 
 collections:
   - name: community.docker

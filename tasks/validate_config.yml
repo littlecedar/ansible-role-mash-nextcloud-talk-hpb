@@ -19,10 +19,11 @@
       - nextcloud_talk_hpb_signaling_block_key | string | length > 0
       - nextcloud_talk_hpb_signaling_internal_shared_secret_key | string | length > 0
       - nextcloud_talk_hpb_nats_token | string | length > 0
+      - nextcloud_talk_hpb_nats_hostname | string | length > 0
+      - nextcloud_talk_hpb_nats_network | string | length > 0
       - nextcloud_talk_hpb_proxy_network | string | length > 0
       - nextcloud_talk_hpb_signaling_container_image | string | length > 0
       - nextcloud_talk_hpb_janus_container_image | string | length > 0
-      - nextcloud_talk_hpb_nats_container_image | string | length > 0
     fail_msg: >-
       Nextcloud Talk HPB is enabled, but one of the required variables is empty.
       See the role documentation for the list of required variables.
@@ -56,20 +57,6 @@
     that:
       - nextcloud_talk_hpb_nextcloud_url is match('^https?://')
     fail_msg: "nextcloud_talk_hpb_nextcloud_url must start with http:// or https://: {{ nextcloud_talk_hpb_nextcloud_url }}"
-
-- name: Validate that the internal HPB network subnet is a CIDR network
-  ansible.builtin.assert:
-    that:
-      - nextcloud_talk_hpb_hpb_subnet | nextcloud_talk_hpb_ip_network
-    fail_msg: "nextcloud_talk_hpb_hpb_subnet is not a valid CIDR network: {{ nextcloud_talk_hpb_hpb_subnet }}"
-
-- name: Validate that the NATS container IP address is inside the internal HPB network
-  ansible.builtin.assert:
-    that:
-      - nextcloud_talk_hpb_hpb_subnet | nextcloud_talk_hpb_network_contains(nextcloud_talk_hpb_nats_container_ip)
-    fail_msg: >-
-      nextcloud_talk_hpb_nats_container_ip ({{ nextcloud_talk_hpb_nats_container_ip }})
-      is not inside nextcloud_talk_hpb_hpb_subnet ({{ nextcloud_talk_hpb_hpb_subnet }})
 
 - name: Validate that the egress network subnet is a CIDR network
   ansible.builtin.assert:
@@ -158,6 +145,20 @@
       The external proxy network '{{ nextcloud_talk_hpb_proxy_network }}' has no usable IPv4 subnet
       (detected: '{{ nextcloud_talk_hpb_proxy_network_subnet }}'). Set
       nextcloud_talk_hpb_proxy_network_subnet explicitly.
+
+- name: Inspect the NATS container network
+  community.docker.docker_network_info:
+    name: "{{ nextcloud_talk_hpb_nats_network }}"
+  register: nextcloud_talk_hpb_nats_network_info
+
+- name: Validate that the NATS container network exists
+  ansible.builtin.assert:
+    that:
+      - nextcloud_talk_hpb_nats_network_info.exists | bool
+    fail_msg: >-
+      The NATS container network '{{ nextcloud_talk_hpb_nats_network }}' does not exist.
+      Deploy the nats role/component before this role, or point
+      nextcloud_talk_hpb_nats_network at the network the bus is on.
 
 - name: Check whether a compose.yaml is checked in at the role root
   ansible.builtin.stat:

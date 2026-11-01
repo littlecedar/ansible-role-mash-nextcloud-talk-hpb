@@ -8,7 +8,6 @@
     path: "{{ devture_systemd_docker_base_systemd_path }}/{{ item }}.service"
   register: nextcloud_talk_hpb_systemd_unit_stat
   loop:
-    - "{{ nextcloud_talk_hpb_nats_identifier }}"
     - "{{ nextcloud_talk_hpb_signaling_identifier }}"
     - "{{ nextcloud_talk_hpb_janus_identifier }}"
 
@@ -33,7 +32,8 @@
     daemon_reload: true
 
 # The external proxy network is managed by the operator and is never removed here,
-# regardless of `nextcloud_talk_hpb_proxy_network_deletion_enabled`.
+# regardless of `nextcloud_talk_hpb_proxy_network_deletion_enabled`. Only the role's own
+# egress network is removed; the NATS network is owned and removed by the `nats` role.
 - name: Ensure the internal Nextcloud Talk HPB container networks are removed via community.docker.docker_network
   when:
     - devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
@@ -42,8 +42,6 @@
     name: "{{ item.name }}"
     state: absent
   loop:
-    - name: "{{ nextcloud_talk_hpb_hpb_network }}"
-      deletion_enabled: "{{ nextcloud_talk_hpb_hpb_network_deletion_enabled }}"
     - name: "{{ nextcloud_talk_hpb_egress_network }}"
       deletion_enabled: "{{ nextcloud_talk_hpb_egress_network_deletion_enabled }}"
 
@@ -59,8 +57,6 @@
     nextcloud_talk_hpb_network_removal_result.rc != 0
     and 'No such network' not in nextcloud_talk_hpb_network_removal_result.stderr
   loop:
-    - name: "{{ nextcloud_talk_hpb_hpb_network }}"
-      deletion_enabled: "{{ nextcloud_talk_hpb_hpb_network_deletion_enabled }}"
     - name: "{{ nextcloud_talk_hpb_egress_network }}"
       deletion_enabled: "{{ nextcloud_talk_hpb_egress_network_deletion_enabled }}"
 

@@ -15,7 +15,7 @@
 # which always runs before these tasks. The external proxy network itself is created and
 # deleted by the operator: this role only attaches the signaling container to it.
 
-- name: Ensure the internal Nextcloud Talk HPB container networks exist via community.docker.docker_network
+- name: Ensure the internal Nextcloud Talk HPB egress container network exists via community.docker.docker_network
   when: devture_systemd_docker_base_container_network_creation_method == 'ansible-module'
   community.docker.docker_network:
     name: "{{ item.name }}"
@@ -24,19 +24,15 @@
     enable_ipv6: "{{ devture_systemd_docker_base_ipv6_enabled }}"
     driver_options: "{{ devture_systemd_docker_base_container_networks_driver_options }}"
     ipam_config: "{{ item.ipam_config }}"
-  register: nextcloud_talk_hpb_network_result_ansible_module
+  register: nextcloud_talk_hpb_egress_network_result_ansible_module
   loop:
-    - name: "{{ nextcloud_talk_hpb_hpb_network }}"
-      internal: true
-      ipam_config:
-        - subnet: "{{ nextcloud_talk_hpb_hpb_subnet }}"
     - name: "{{ nextcloud_talk_hpb_egress_network }}"
       internal: false
       ipam_config:
         - subnet: "{{ nextcloud_talk_hpb_egress_subnet }}"
           gateway: "{{ nextcloud_talk_hpb_egress_gateway }}"
 
-- name: Ensure the internal Nextcloud Talk HPB container networks exist via ansible.builtin.command
+- name: Ensure the internal Nextcloud Talk HPB egress container network exists via ansible.builtin.command
   when: devture_systemd_docker_base_container_network_creation_method == 'command'
   ansible.builtin.command:
     cmd: >-
@@ -46,15 +42,12 @@
       --subnet {{ item.subnet }}
       {% if item.gateway is defined %}--gateway {{ item.gateway }}{% endif %}
       {{ item.name }}
-  register: nextcloud_talk_hpb_network_result_command
-  changed_when: nextcloud_talk_hpb_network_result_command.rc == 0
+  register: nextcloud_talk_hpb_egress_network_result_command
+  changed_when: nextcloud_talk_hpb_egress_network_result_command.rc == 0
   failed_when: >-
-    nextcloud_talk_hpb_network_result_command.rc != 0
-    and 'already exists' not in nextcloud_talk_hpb_network_result_command.stderr
+    nextcloud_talk_hpb_egress_network_result_command.rc != 0
+    and 'already exists' not in nextcloud_talk_hpb_egress_network_result_command.stderr
   loop:
-    - name: "{{ nextcloud_talk_hpb_hpb_network }}"
-      internal: true
-      subnet: "{{ nextcloud_talk_hpb_hpb_subnet }}"
     - name: "{{ nextcloud_talk_hpb_egress_network }}"
       internal: false
       subnet: "{{ nextcloud_talk_hpb_egress_subnet }}"
@@ -77,8 +70,6 @@
   loop:
     - image: "{{ nextcloud_talk_hpb_signaling_container_image }}"
       enabled: "{{ nextcloud_talk_hpb_signaling_container_image_pull | bool }}"
-    - image: "{{ nextcloud_talk_hpb_nats_container_image }}"
-      enabled: "{{ nextcloud_talk_hpb_nats_container_image_pull | bool }}"
     - image: "{{ nextcloud_talk_hpb_janus_container_image }}"
       enabled: "{{ not (nextcloud_talk_hpb_janus_container_image_self_build | bool) }}"
 
@@ -97,8 +88,6 @@
   loop:
     - image: "{{ nextcloud_talk_hpb_signaling_container_image }}"
       enabled: "{{ nextcloud_talk_hpb_signaling_container_image_pull | bool }}"
-    - image: "{{ nextcloud_talk_hpb_nats_container_image }}"
-      enabled: "{{ nextcloud_talk_hpb_nats_container_image_pull | bool }}"
     - image: "{{ nextcloud_talk_hpb_janus_container_image }}"
       enabled: "{{ not (nextcloud_talk_hpb_janus_container_image_self_build | bool) }}"
 
@@ -117,8 +106,6 @@
   loop:
     - image: "{{ nextcloud_talk_hpb_signaling_container_image }}"
       enabled: "{{ nextcloud_talk_hpb_signaling_container_image_pull | bool }}"
-    - image: "{{ nextcloud_talk_hpb_nats_container_image }}"
-      enabled: "{{ nextcloud_talk_hpb_nats_container_image_pull | bool }}"
     - image: "{{ nextcloud_talk_hpb_janus_container_image }}"
       enabled: "{{ not (nextcloud_talk_hpb_janus_container_image_self_build | bool) }}"
 
@@ -140,7 +127,7 @@
     pull: true
   register: nextcloud_talk_hpb_janus_build_result
 
-# These files carry the signaling, NATS and TURN secrets, so the task is `no_log`:
+# These files carry the signaling and TURN secrets, so the task is `no_log`:
 # neither a successful nor a failing run may print the rendered content.
 - name: Ensure the Nextcloud Talk HPB support files are installed
   no_log: true
@@ -158,9 +145,6 @@
     - src: templates/janus.env.j2
       dest: janus.env
       mode: "0640"
-    - src: templates/nats.conf.j2
-      dest: nats.conf
-      mode: "0640"
     - src: templates/signaling.labels.j2
       dest: signaling.labels
       mode: "0640"
@@ -172,8 +156,6 @@
     mode: "0644"
   register: nextcloud_talk_hpb_systemd_unit_result
   loop:
-    - src: templates/systemd/nats.service.j2
-      dest: "{{ nextcloud_talk_hpb_nats_identifier }}.service"
     - src: templates/systemd/signaling.service.j2
       dest: "{{ nextcloud_talk_hpb_signaling_identifier }}.service"
     - src: templates/systemd/janus.service.j2
@@ -191,7 +173,7 @@
           or ((nextcloud_talk_hpb_image_pull_result_command | default({})).changed | default(false))
           or ((nextcloud_talk_hpb_janus_source_result | default({})).changed | default(false))
           or ((nextcloud_talk_hpb_janus_build_result | default({})).changed | default(false))
-          or ((nextcloud_talk_hpb_network_result_ansible_module | default({})).changed | default(false))
-          or ((nextcloud_talk_hpb_network_result_command | default({})).changed | default(false))
+          or ((nextcloud_talk_hpb_egress_network_result_ansible_module | default({})).changed | default(false))
+          or ((nextcloud_talk_hpb_egress_network_result_command | default({})).changed | default(false))
         ) | bool
       }}

@@ -17,7 +17,6 @@
   until: nextcloud_talk_hpb_verify_unit_state.stdout | trim == 'active'
   failed_when: nextcloud_talk_hpb_verify_unit_state.stdout | trim != 'active'
   loop:
-    - nextcloud-talk-hpb-nats.service
     - nextcloud-talk-hpb-signaling.service
     - nextcloud-talk-hpb-janus.service
 
@@ -54,7 +53,7 @@
   ansible.builtin.command:
     cmd: >-
       timeout --signal=INT 20
-      docker run --rm --network nextcloud-talk-hpb-hpb
+      docker run --rm --network nats
       --mount type=bind,src=/etc/hpb-client.conf,dst=/etc/client.conf,readonly
       nextcloud-talk-hpb-test-client:local
       -addr nextcloud-talk-hpb-signaling:8081
@@ -184,7 +183,7 @@
     that:
       - server_conf is search('(?m)^\s*backends = nextcloud\s*$')
       - server_conf is search('(?m)^\s*allowall = true\s*$')
-      - server_conf is search('nats://smoke-nats-token@172\.28\.0\.4:4222')
+      - server_conf is search('nats://smoke-nats-token@nats:4222')
       - server_conf is search('ws://172\.29\.0\.1:8188')
       - server_conf is search('(?m)^\s*trustedproxies = 172\.30\.99\.0/24\s*$')
       - server_conf is search('(?m)^\s*allowed_ips = 127\.0\.0\.1\s*$')
@@ -211,13 +210,11 @@
   loop:
     - nextcloud-talk-hpb-signaling
     - nextcloud-talk-hpb-janus
-    - nextcloud-talk-hpb-nats
 
 - name: Collect the inspected container state
   ansible.builtin.set_fact:
     nextcloud_talk_hpb_verify_signaling_container: "{{ (nextcloud_talk_hpb_verify_inspect.results | selectattr('item', 'equalto', 'nextcloud-talk-hpb-signaling') | list | first).stdout | from_json | first }}"
     nextcloud_talk_hpb_verify_janus_container: "{{ (nextcloud_talk_hpb_verify_inspect.results | selectattr('item', 'equalto', 'nextcloud-talk-hpb-janus') | list | first).stdout | from_json | first }}"
-    nextcloud_talk_hpb_verify_nats_container: "{{ (nextcloud_talk_hpb_verify_inspect.results | selectattr('item', 'equalto', 'nextcloud-talk-hpb-nats') | list | first).stdout | from_json | first }}"
 
 - name: Verify the container isolation of the signaling server
   vars:
@@ -241,34 +238,12 @@
       - janus['HostConfig']['NetworkMode'] == 'host'
       - janus['HostConfig']['SecurityOpt'] | select('search', 'no-new-privileges') | list | length > 0
 
-- name: Verify the container isolation of NATS
-  vars:
-    nats: "{{ nextcloud_talk_hpb_verify_nats_container }}"
-  ansible.builtin.assert:
-    that:
-      - nats['Config']['User'] == '1000:1000'
-      - nats['HostConfig']['ReadonlyRootfs'] | bool
-      - "'ALL' in nats['HostConfig']['CapDrop']"
-      - nats['HostConfig']['PortBindings'] | default({}) | length == 0
-
 - name: Verify the effective user of the Janus process
   ansible.builtin.command:
     cmd: docker exec nextcloud-talk-hpb-janus id -u
   register: nextcloud_talk_hpb_verify_janus_uid
   changed_when: false
   failed_when: nextcloud_talk_hpb_verify_janus_uid.stdout | trim != '10001'
-
-# The NATS image is scratch-based (no `id`, no shell), so its effective user is read
-# from the host's view of the container process.
-- name: Verify the effective user of the NATS process
-  ansible.builtin.shell:
-    cmd: |
-      set -eu
-      pid=$(docker inspect --format '{{ "{{" }} .State.Pid {{ "}}" }}' nextcloud-talk-hpb-nats)
-      grep -E '^Uid:' "/proc/${pid}/status" | cut -f2
-  register: nextcloud_talk_hpb_verify_nats_uid
-  changed_when: false
-  failed_when: nextcloud_talk_hpb_verify_nats_uid.stdout | trim != '1000'
 
 # The container runs as the role UID (1000 in molecule), with no entrypoint privilege drop.
 - name: Verify the effective user of the signaling process
@@ -333,7 +308,6 @@
   changed_when: false
   no_log: true
   loop:
-    - nextcloud-talk-hpb-nats.service
     - nextcloud-talk-hpb-signaling.service
     - nextcloud-talk-hpb-janus.service
 
@@ -358,7 +332,6 @@
   loop:
     - nextcloud-talk-hpb-signaling
     - nextcloud-talk-hpb-janus
-    - nextcloud-talk-hpb-nats
 
 - name: Verify that no secret appears in any inspectable container field
   vars:
@@ -376,7 +349,6 @@
   loop:
     - /nextcloud-talk-hpb/signaling.conf
     - /nextcloud-talk-hpb/janus.env
-    - /nextcloud-talk-hpb/nats.conf
     - /nextcloud-talk-hpb/signaling.labels
 
 - name: Verify the support file modes

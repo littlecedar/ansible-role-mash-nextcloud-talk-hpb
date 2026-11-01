@@ -52,10 +52,6 @@ jobs:
             context: build/janus
             tag: ansible-role-nextcloud-talk-hpb:ci
             smoke: ./scripts/smoke-test-janus.sh
-          - service: nats
-            context: build/nats
-            tag: nextcloud-talk-hpb-nats:ci
-            smoke: ./scripts/smoke-test-nats.sh
           - service: spreed
             context: build/spreed
             tag: nextcloud-talk-hpb-spreed:ci

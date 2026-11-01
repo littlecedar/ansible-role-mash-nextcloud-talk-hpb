@@ -20,8 +20,8 @@ nextcloud_talk_hpb_identifier: nextcloud-talk-hpb
 
 nextcloud_talk_hpb_base_path: "/{{ nextcloud_talk_hpb_identifier }}"
 
-# The user and group that own the rendered support files and run the NATS and
-# signaling containers. These are typically injected by the playbook
+# The user and group that own the rendered support files and run the signaling
+# container. These are typically injected by the playbook
 # (e.g. `{{ mash_playbook_uid }}`).
 nextcloud_talk_hpb_uid: ""
 
@@ -56,9 +56,6 @@ nextcloud_talk_hpb_signaling_block_key: ""
 
 nextcloud_talk_hpb_signaling_internal_shared_secret_key: ""
 
-# The token that the signaling server uses to authenticate against NATS.
-nextcloud_talk_hpb_nats_token: ""
-
 ########################################################################
 #                                                                      #
 # Networks                                                             #
@@ -73,15 +70,6 @@ nextcloud_talk_hpb_proxy_network: proxy
 # network and validated.
 nextcloud_talk_hpb_proxy_network_subnet: ""
 
-# The internal network shared by the signaling and NATS containers.
-# It is an internal bridge: it has no host route.
-nextcloud_talk_hpb_hpb_network: "{{ nextcloud_talk_hpb_identifier }}-hpb"
-
-nextcloud_talk_hpb_hpb_subnet: 172.28.0.0/24
-
-# NATS uses a fixed address so that the signaling server's NATS URL never changes.
-nextcloud_talk_hpb_nats_container_ip: 172.28.0.4
-
 # The network between the signaling container and the host-networking Janus container.
 # The signaling server reaches the Janus WebSocket transport at `<egress_gateway>:8188`;
 # Janus accepts it only from `egress_subnet`.
@@ -92,8 +80,6 @@ nextcloud_talk_hpb_egress_subnet: 172.29.0.0/24
 nextcloud_talk_hpb_egress_gateway: 172.29.0.1
 
 # Controls whether the role removes its own networks on uninstall.
-nextcloud_talk_hpb_hpb_network_deletion_enabled: true
-
 nextcloud_talk_hpb_egress_network_deletion_enabled: true
 
 # Documented for completeness only: the external proxy network is never removed by this
@@ -154,7 +140,8 @@ nextcloud_talk_hpb_signaling_systemd_required_services_list: "{{ nextcloud_talk_
 
 nextcloud_talk_hpb_signaling_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
 
-nextcloud_talk_hpb_signaling_systemd_required_services_list_auto: []
+# The NATS unit starts first when the nats role runs in the same playbook.
+nextcloud_talk_hpb_signaling_systemd_required_services_list_auto: "{{ [nextcloud_talk_hpb_nats_hostname ~ '.service'] if (nats_enabled | default(false)) else [] }}"
 
 nextcloud_talk_hpb_signaling_systemd_required_services_list_custom: []
 
@@ -285,76 +272,29 @@ nextcloud_talk_hpb_janus_container_cleanup_command: |
 
 ########################################################################
 #                                                                      #
-# NATS                                                                 #
+# NATS message bus                                                     #
 #                                                                      #
 ########################################################################
 
-# Built and published by this repository.
-nextcloud_talk_hpb_nats_container_image_tag: "2.15.1"
+# NATS is deployed by the separate `nats` role
+# (https://github.com/littlecedar/ansible-role-mash-nats), not by this role.
+# This role consumes that role's contract:
+#   nats_token              bearer token: NATS accepts it, signaling presents it
+#   nats_identifier         container and unit name, and the DNS name of the bus
+#   nats_container_network  internal network the signaling container joins
+# Override the three `nextcloud_talk_hpb_nats_*` values below to use a bus that
+# runs outside this playbook.
+nextcloud_talk_hpb_nats_token: "{{ nats_token | default('') }}"
 
-nextcloud_talk_hpb_nats_container_image: "ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-nats:{{ nextcloud_talk_hpb_nats_container_image_tag }}"
+nextcloud_talk_hpb_nats_hostname: "{{ nats_identifier | default('') }}"
 
-# Pull the published image before starting the container. Disable when the image is
-# built or loaded locally.
-nextcloud_talk_hpb_nats_container_image_pull: true
-
-nextcloud_talk_hpb_nats_systemd_required_services_list: "{{ nextcloud_talk_hpb_nats_systemd_required_services_list_default + nextcloud_talk_hpb_nats_systemd_required_services_list_auto + nextcloud_talk_hpb_nats_systemd_required_services_list_custom }}"
-
-nextcloud_talk_hpb_nats_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
-
-nextcloud_talk_hpb_nats_systemd_required_services_list_auto: []
-
-nextcloud_talk_hpb_nats_systemd_required_services_list_custom: []
-
-nextcloud_talk_hpb_nats_systemd_wanted_services_list: "{{ nextcloud_talk_hpb_nats_systemd_wanted_services_list_default + nextcloud_talk_hpb_nats_systemd_wanted_services_list_auto + nextcloud_talk_hpb_nats_systemd_wanted_services_list_custom }}"
-
-nextcloud_talk_hpb_nats_systemd_wanted_services_list_default: []
-
-nextcloud_talk_hpb_nats_systemd_wanted_services_list_auto: []
-
-nextcloud_talk_hpb_nats_systemd_wanted_services_list_custom: []
-
-# Size of the container's tmpfs mount at /tmp (NATS keeps runtime state only in memory).
-nextcloud_talk_hpb_nats_container_tmpfs_tmp_size: 16m
-
-nextcloud_talk_hpb_nats_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
-
-nextcloud_talk_hpb_nats_container_cleanup_timeout_seconds: "{{ devture_systemd_docker_base_container_cleanup_timeout_seconds }}"
-
-nextcloud_talk_hpb_nats_container_cleanup_retry_delay_seconds: "{{ devture_systemd_docker_base_container_cleanup_retry_delay_seconds }}"
-
-nextcloud_talk_hpb_nats_container_cleanup_command: |
-  i=0;
-  while [ "$i" -lt {{ nextcloud_talk_hpb_nats_container_cleanup_timeout_seconds }} ]; do
-  {{ devture_systemd_docker_base_host_command_docker }} stop -t {{ nextcloud_talk_hpb_nats_container_stop_grace_time_seconds }} {{ nextcloud_talk_hpb_nats_identifier }} >/dev/null 2>&1 || true;
-  {{ devture_systemd_docker_base_host_command_docker }} rm -f {{ nextcloud_talk_hpb_nats_identifier }} >/dev/null 2>&1 || true;
-  if {{ devture_systemd_docker_base_host_command_docker }} container inspect {{ nextcloud_talk_hpb_nats_identifier }} >/dev/null 2>&1; then
-  i=$((i + 1));
-  sleep {{ nextcloud_talk_hpb_nats_container_cleanup_retry_delay_seconds }};
-  continue;
-  fi;
-  if {{ devture_systemd_docker_base_host_command_docker }} info >/dev/null 2>&1; then
-  exit 0;
-  fi;
-  echo "Failed to query Docker daemon while cleaning up {{ nextcloud_talk_hpb_nats_identifier }}" >&2;
-  exit 1;
-  done;
-  echo "Failed to remove stale container {{ nextcloud_talk_hpb_nats_identifier }} after {{ nextcloud_talk_hpb_nats_container_cleanup_timeout_seconds }} attempts" >&2;
-  exit 1
-
-########################################################################
-#                                                                      #
-# /NATS                                                                #
-#                                                                      #
-########################################################################
+nextcloud_talk_hpb_nats_network: "{{ nats_container_network | default('') }}"
 
 ########################################################################
 #                                                                      #
 # Identifiers and restart signalling                                   #
 #                                                                      #
 ########################################################################
-
-nextcloud_talk_hpb_nats_identifier: "{{ nextcloud_talk_hpb_identifier }}-nats"
 
 nextcloud_talk_hpb_signaling_identifier: "{{ nextcloud_talk_hpb_identifier }}-signaling"
 

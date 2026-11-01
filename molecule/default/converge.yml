@@ -20,7 +20,12 @@
     nextcloud_talk_hpb_signaling_hash_key: "smoke-hash-key-0123456789abcdef0123456789abcdef0123456789abcdef0"
     nextcloud_talk_hpb_signaling_block_key: "smoke-block-key-0123456789abcdef"
     nextcloud_talk_hpb_signaling_internal_shared_secret_key: smoke-internal-secret
-    nextcloud_talk_hpb_nats_token: smoke-nats-token
+    # The nats role runs before this one and provides its contract:
+    # nats_token, nats_identifier and nats_container_network.
+    nats_enabled: true
+    nats_uid: 1000
+    nats_gid: 1000
+    nats_token: smoke-nats-token
     nextcloud_talk_hpb_proxy_network: proxy
     nextcloud_talk_hpb_proxy_network_subnet: 172.30.99.0/24
     nextcloud_talk_hpb_signaling_container_labels_traefik_enabled: false
@@ -33,14 +38,14 @@
     nextcloud_talk_hpb_janus_container_image_self_build_repo: /srv/ansible-role-nextcloud-talk-hpb
     nextcloud_talk_hpb_janus_container_image_self_build_repo_version: v1.4.3-0
     nextcloud_talk_hpb_janus_container_image: nextcloud-talk-hpb-janus:ci
-    # NATS and Spreed images are built from this repository's Dockerfiles in prepare.
-    nextcloud_talk_hpb_nats_container_image: nextcloud-talk-hpb-nats:ci
-    nextcloud_talk_hpb_nats_container_image_pull: false
+    # The Spreed image is built from this repository's Dockerfile in prepare; the nats
+    # role pulls the published NATS image.
     nextcloud_talk_hpb_signaling_container_image: nextcloud-talk-hpb-spreed:ci
     nextcloud_talk_hpb_signaling_container_image_pull: false
   roles:
     - role: com.devture.ansible.role.playbook_help
     - role: com.devture.ansible.role.systemd_docker_base
+    - role: nats
     - role: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
 
   post_tasks:
@@ -51,6 +56,5 @@
         enabled: true
         daemon_reload: true
       loop:
-        - nextcloud-talk-hpb-nats.service
         - nextcloud-talk-hpb-signaling.service
         - nextcloud-talk-hpb-janus.service
