@@ -180,7 +180,7 @@ the post-deployment steps.
 
 ## Networks
 
-The role owns only its internal networks; the proxy network is external to it.
+The role owns only its egress network; the proxy network is external to it.
 
 | Network | Type | Default | Purpose |
 | --- | --- | --- | --- |

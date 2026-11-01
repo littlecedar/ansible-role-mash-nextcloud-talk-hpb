@@ -7,7 +7,7 @@ galaxy_info:
   author: littlecedar
   role_name: nextcloud_talk_hpb
   namespace: littlecedar
-  description: Nextcloud Talk high-performance backend (signaling, Janus, NATS)
+  description: Nextcloud Talk high-performance backend (signaling, Janus)
   platforms:
     - name: Debian
       versions: [all]
