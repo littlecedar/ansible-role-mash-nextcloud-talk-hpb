@@ -294,6 +294,12 @@ repository builds and publishes two images; the NATS image is published by the
 [`ansible-role-mash-nats`](https://github.com/littlecedar/ansible-role-mash-nats)
 repository. Role releases (`v1.4.3-1`) are separate tags and never publish an image.
 
+Dependency updates come from Renovate: `.github/workflows/renovate.yml` runs it daily
+against `renovate.json`, which covers the GitHub Actions versions, the Dockerfile base
+images, and the Ansible role and collection pins in `molecule/default/requirements.yml`.
+It leaves the release pins alone: Janus is bumped by `update-janus.sh`, and the Spreed
+version moves together with its commit, `build/test-client` and the pin tables.
+
 ## Development
 
 ```sh

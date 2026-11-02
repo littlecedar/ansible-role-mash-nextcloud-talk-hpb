@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2026 Travis Wichert
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+name: Renovate
+
+# Renovate runs from the repository rather than from the Mend-hosted app, so the
+# updates arrive without installing an app on the organization. Its token is the
+# workflow's own GITHUB_TOKEN: pull requests it opens cannot trigger workflows,
+# and nothing else in this repository runs on pull requests either.
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+jobs:
+  renovate:
+    name: Renovate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Run Renovate
+        uses: renovatebot/github-action@v46
+        with:
+          configurationFile: renovate.json
+          token: ${{ secrets.GITHUB_TOKEN }}
