@@ -8,7 +8,7 @@
 # (the image tag omits the leading `v`).
 ARG SIGNALING_VERSION=v2.1.1
 
-FROM golang:1.25 AS builder
+FROM golang:1.27 AS builder
 ARG SIGNALING_VERSION
 
 RUN CGO_ENABLED=0 go install "github.com/strukturag/nextcloud-spreed-signaling/v2/cmd/client@${SIGNALING_VERSION}"
