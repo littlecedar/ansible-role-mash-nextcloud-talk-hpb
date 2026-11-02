@@ -6,10 +6,9 @@
 # It is CI/molecule-only and is never published.
 # Keep SIGNALING_VERSION in sync with nextcloud_talk_hpb_signaling_container_image_tag
 # (the image tag omits the leading `v`).
-ARG GO_VERSION=1.25
 ARG SIGNALING_VERSION=v2.1.1
 
-FROM golang:${GO_VERSION} AS builder
+FROM golang:1.25 AS builder
 ARG SIGNALING_VERSION
 
 RUN CGO_ENABLED=0 go install "github.com/strukturag/nextcloud-spreed-signaling/v2/cmd/client@${SIGNALING_VERSION}"

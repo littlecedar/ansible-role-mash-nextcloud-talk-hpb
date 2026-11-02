@@ -4,11 +4,10 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-ARG GO_VERSION=1.26.8
 ARG SPREED_VERSION=2.1.1
 ARG SPREED_COMMIT=e7a8fb7aa9b99ad9f41e0e1793ce147ed36ecc62
 
-FROM golang:${GO_VERSION}-alpine AS builder
+FROM golang:1.26.8-alpine AS builder
 ARG SPREED_VERSION
 ARG SPREED_COMMIT
 RUN apk add --no-cache ca-certificates git \

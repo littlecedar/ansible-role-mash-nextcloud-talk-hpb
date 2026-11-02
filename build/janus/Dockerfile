@@ -4,11 +4,10 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-ARG UBUNTU_VERSION=24.04
 ARG JANUS_VERSION=1.4.3
 ARG JANUS_COMMIT=1f0b75cac1c9ad819ee4c2a905a2c65b00b82cde
 
-FROM ubuntu:${UBUNTU_VERSION} AS builder
+FROM ubuntu:24.04 AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /src
 
@@ -116,7 +115,7 @@ RUN git clone https://github.com/meetecho/janus-gateway.git /src/janus \
  && make install \
  && make configs
 
-FROM ubuntu:${UBUNTU_VERSION} AS runtime
+FROM ubuntu:24.04 AS runtime
 ARG JANUS_VERSION
 
 LABEL org.opencontainers.image.title="ansible-role-mash-nextcloud-talk-hpb" \
