@@ -4,5 +4,13 @@
   "vulnerabilityAlerts": {
     "enabled": false
   },
-  "osvVulnerabilityAlerts": true
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "description": "ubuntu 26.04 has no libconfig9, so the Janus runtime stage cannot install its packages; delete this rule once build/janus/Dockerfile carries the 26.04 package names.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ubuntu"],
+      "allowedVersions": "/^24\\./"
+    }
+  ]
 }
