@@ -312,6 +312,11 @@ self-build path builds it inside the instance, then converges both roles, starts
 units, runs the HPB protocol client against the signaling server and asserts the
 security and configuration invariants in `molecule/verify_tasks.yml`.
 
+The instance keeps the nested daemon's store in an anonymous volume, because deleting
+that store together with the container exceeds Docker's 60-second removal timeout. Each
+`molecule test` therefore leaves about 13 GB of dangling volume behind: `docker volume
+prune` reclaims it. Ephemeral CI runners discard it with the VM.
+
 ## License
 
 AGPL-3.0-or-later. See [`LICENSE`](LICENSE).
