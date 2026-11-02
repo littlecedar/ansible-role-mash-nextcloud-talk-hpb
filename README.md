@@ -298,7 +298,11 @@ Dependency updates come from Renovate: `.github/workflows/renovate.yml` runs it 
 against `renovate.json`, which covers the GitHub Actions versions, the Dockerfile base
 images, and the Ansible role and collection pins in `molecule/default/requirements.yml`.
 It leaves the release pins alone: Janus is bumped by `update-janus.sh`, and the Spreed
-version moves together with its commit, `build/test-client` and the pin tables.
+version moves together with its commit, `build/test-client` and the pin tables. The
+workflow needs a `RENOVATE_TOKEN` secret, a fine-grained personal access token with
+contents, pull requests and workflows write access: the organization forbids GitHub
+Actions to create pull requests, so the workflow's own token cannot open them. Until
+the secret exists the run warns and stops instead of failing.
 
 ## Development
 

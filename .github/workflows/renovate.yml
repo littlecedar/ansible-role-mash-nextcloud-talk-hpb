@@ -5,19 +5,22 @@
 ---
 name: Renovate
 
-# Renovate runs from the repository rather than from the Mend-hosted app, so the
-# updates arrive without installing an app on the organization. Its token is the
-# workflow's own GITHUB_TOKEN: pull requests it opens cannot trigger workflows,
-# and nothing else in this repository runs on pull requests either.
+# Renovate runs here rather than from the Mend-hosted app, so updates arrive
+# without installing an app on the organization.
+#
+# It authenticates with RENOVATE_TOKEN, not the workflow's GITHUB_TOKEN: the
+# organization forbids GitHub Actions to create pull requests, so a workflow
+# token can push branches but never open the pull request that makes them
+# reviewable. RENOVATE_TOKEN is a fine-grained personal access token with
+# contents, pull requests and workflows write access; workflows write is what
+# lets Renovate bump the actions this repository uses.
 on:
   schedule:
     - cron: "17 5 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: renovate
@@ -31,11 +34,26 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      # With no secret there is nothing Renovate can do, and a red daily run would
+      # say less than this warning does.
+      - name: Check for the Renovate token
+        id: token
+        env:
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+        run: |
+          if [ -z "$RENOVATE_TOKEN" ]; then
+            echo "::warning::RENOVATE_TOKEN is not set, so Renovate is skipped; see the README."
+            echo "configured=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >>"$GITHUB_OUTPUT"
+          fi
+
       - name: Run Renovate
+        if: steps.token.outputs.configured == 'true'
         uses: renovatebot/github-action@v46.3.12
         env:
-          # The workflow's GITHUB_TOKEN cannot discover repositories, so name this one.
+          # A token scoped to one repository cannot discover repositories, so name it.
           RENOVATE_REPOSITORIES: ${{ github.repository }}
         with:
           configurationFile: renovate.json
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RENOVATE_TOKEN }}
