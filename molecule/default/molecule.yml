@@ -22,6 +22,10 @@ platforms:
     command: /lib/systemd/systemd
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      # The nested daemon's vfs store holds the Janus build. Left in the container
+      # layer, `docker rm` has to delete it and exceeds Docker's 60s API timeout;
+      # as an anonymous volume it is kept and the container is removed at once.
+      - /var/lib/docker
     security_opts:
       - seccomp=unconfined
     capabilities:
