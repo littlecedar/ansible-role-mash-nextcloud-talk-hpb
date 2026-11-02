@@ -33,6 +33,9 @@ jobs:
 
       - name: Run Renovate
         uses: renovatebot/github-action@v46.3.12
+        env:
+          # The workflow's GITHUB_TOKEN cannot discover repositories, so name this one.
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
         with:
           configurationFile: renovate.json
           token: ${{ secrets.GITHUB_TOKEN }}
