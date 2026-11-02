@@ -32,7 +32,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.15"
 
       - name: Install the linters
         run: pip install ansible-core ansible-lint yamllint
@@ -72,7 +72,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.15"
 
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v3
