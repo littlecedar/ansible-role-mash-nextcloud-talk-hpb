@@ -55,11 +55,11 @@ Run `systemctl daemon-reload` and then `systemctl restart nextcloud-talk-hpb-jan
 
 ```sh
 docker run --rm --entrypoint cat \
-  ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb:1.4.3 \
+  ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb:1.4.3 \
   /opt/janus/etc/janus/janus.jcfg > conf.d/janus.jcfg
 ```
 
-For a locally built image, substitute `ansible-role-nextcloud-talk-hpb:local`.
+For a locally built image, substitute `ansible-role-mash-nextcloud-talk-hpb:local`.
 
 Available configs: `janus.jcfg`, `janus.transport.http.jcfg`,
 `janus.transport.websockets.jcfg`, `janus.eventhandler.wsevh.jcfg`,

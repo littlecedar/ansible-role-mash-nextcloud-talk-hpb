@@ -15,8 +15,8 @@ The role installs two systemd-wrapped containers:
 
 | Component | Image | Role |
 | --- | --- | --- |
-| `nextcloud-spreed-signaling` | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-spreed:2.1.1` | Signaling server: the only public HTTP/WebSocket endpoint |
-| Janus | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb:1.4.3` | MCU: VideoRoom, WebSocket transport, WebSocket event handler |
+| `nextcloud-spreed-signaling` | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb-spreed:2.1.1` | Signaling server: the only public HTTP/WebSocket endpoint |
+| Janus | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb:1.4.3` | MCU: VideoRoom, WebSocket transport, WebSocket event handler |
 
 The external TURN server (coturn) and the TLS reverse proxy (Traefik) are
 operator-provided. **This role never deploys, packages or exposes either of them**:
@@ -90,7 +90,7 @@ components; do not edit those generated files.
 - src: git+https://github.com/littlecedar/ansible-role-mash-nats.git
   version: v2.15.1-0
   name: nats
-- src: git+https://github.com/littlecedar/ansible-role-nextcloud-talk-hpb.git
+- src: git+https://github.com/littlecedar/ansible-role-mash-nextcloud-talk-hpb.git
   version: v1.4.3-1
   name: nextcloud_talk_hpb
 ```
@@ -230,8 +230,8 @@ locally and point the role at with `nextcloud_talk_hpb_signaling_container_image
 
 | Service | Build context | Default image | Pinned version |
 | --- | --- | --- | --- |
-| Janus | [`build/janus/`](build/janus) | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb:1.4.3` | Janus `1.4.3` (`1f0b75ca`) |
-| Spreed signaling | [`build/spreed/`](build/spreed) | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-spreed:2.1.1` | Spreed `2.1.1` (`e7a8fb7a`) |
+| Janus | [`build/janus/`](build/janus) | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb:1.4.3` | Janus `1.4.3` (`1f0b75ca`) |
+| Spreed signaling | [`build/spreed/`](build/spreed) | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb-spreed:2.1.1` | Spreed `2.1.1` (`e7a8fb7a`) |
 
 Only Janus can be built on the target: set
 `nextcloud_talk_hpb_janus_container_image_self_build: true` and the role clones this
@@ -243,10 +243,10 @@ repository. The molecule-only test client image lives in
 [`build/test-client/`](build/test-client).
 
 ```sh
-docker build -t ansible-role-nextcloud-talk-hpb:local build/janus
+docker build -t ansible-role-mash-nextcloud-talk-hpb:local build/janus
 docker build -t nextcloud-talk-hpb-spreed:local build/spreed
 
-./scripts/smoke-test-janus.sh ansible-role-nextcloud-talk-hpb:local
+./scripts/smoke-test-janus.sh ansible-role-mash-nextcloud-talk-hpb:local
 ./scripts/smoke-test-spreed.sh nextcloud-talk-hpb-spreed:local
 ```
 
@@ -285,11 +285,11 @@ Spreed hardening: non-root (the image defaults to UID/GID `1000`; the role runs 
 `no-new-privileges`, and a shell-free `scratch` runtime. The signaling configuration is
 rendered by Ansible and mounted read-only; `SIGUSR1` provides graceful shutdown.
 
-Image pipeline: `.github/workflows/ci.yml` runs on pull requests, builds and smoke-tests
-both images, and runs molecule. `.github/workflows/publish.yml` runs on pushes to `main`
-and on `workflow_dispatch`: it builds and smoke-tests both images, runs molecule, and
-only then pushes tags — `sha-<short>` for every publish run, plus `edge`, `latest` and
-the service version when the ref is `main`. No other workflow pushes images. This
+Image pipeline: `.github/workflows/publish.yml` runs on pushes to `main` and on
+`workflow_dispatch`. Its `Lint` job runs `yamllint` and `ansible-lint`; the
+`Test and publish` job needs it, builds and smoke-tests both images, runs molecule,
+and only then pushes tags — `sha-<short>` for every publish run, plus `edge`, `latest`
+and the service version when the ref is `main`. No other workflow pushes images. This
 repository builds and publishes two images; the NATS image is published by the
 [`ansible-role-mash-nats`](https://github.com/littlecedar/ansible-role-mash-nats)
 repository. Role releases (`v1.4.3-1`) are separate tags and never publish an image.

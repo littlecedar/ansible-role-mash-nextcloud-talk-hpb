@@ -22,8 +22,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the linters
+        run: pip install ansible-core ansible-lint yamllint
+
+      - name: Install the collections the role uses
+        run: ansible-galaxy collection install community.docker ansible.posix
+
+      - name: Lint YAML
+        run: yamllint .
+
+      - name: Lint Ansible
+        run: ansible-lint
+
   publish:
     name: Test and publish
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
@@ -80,7 +105,7 @@ jobs:
           context: build/janus
           load: true
           provenance: false
-          tags: ansible-role-nextcloud-talk-hpb:ci
+          tags: ansible-role-mash-nextcloud-talk-hpb:ci
           labels: ${{ steps.meta_janus.outputs.labels }}
           cache-from: type=gha,scope=janus
           cache-to: type=gha,mode=max,scope=janus
@@ -98,7 +123,7 @@ jobs:
 
       # Nothing is pushed before the smoke tests and molecule pass.
       - name: Run the Janus smoke test
-        run: ./scripts/smoke-test-janus.sh ansible-role-nextcloud-talk-hpb:ci
+        run: ./scripts/smoke-test-janus.sh ansible-role-mash-nextcloud-talk-hpb:ci
 
       - name: Run the Spreed smoke test
         run: ./scripts/smoke-test-spreed.sh nextcloud-talk-hpb-spreed:ci
@@ -142,5 +167,5 @@ jobs:
               docker push "$tag"
             done
           }
-          push_tags ansible-role-nextcloud-talk-hpb:ci "$JANUS_TAGS"
+          push_tags ansible-role-mash-nextcloud-talk-hpb:ci "$JANUS_TAGS"
           push_tags nextcloud-talk-hpb-spreed:ci "$SPREED_TAGS"

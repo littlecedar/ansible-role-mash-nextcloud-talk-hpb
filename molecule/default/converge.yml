@@ -35,7 +35,7 @@
     # The Janus image is not published yet when molecule runs, so build it inside the
     # instance from the repository's own image files (the documented self-build path).
     nextcloud_talk_hpb_janus_container_image_self_build: true
-    nextcloud_talk_hpb_janus_container_image_self_build_repo: /srv/ansible-role-nextcloud-talk-hpb
+    nextcloud_talk_hpb_janus_container_image_self_build_repo: /srv/ansible-role-mash-nextcloud-talk-hpb
     nextcloud_talk_hpb_janus_container_image_self_build_repo_version: v1.4.3-0
     nextcloud_talk_hpb_janus_container_image: nextcloud-talk-hpb-janus:ci
     # The Spreed image is built from this repository's Dockerfile in prepare; the nats

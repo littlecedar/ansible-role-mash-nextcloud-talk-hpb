@@ -123,14 +123,14 @@
 
     - name: Ensure the Janus image source directory exists
       ansible.builtin.file:
-        path: /srv/ansible-role-nextcloud-talk-hpb/build/janus
+        path: /srv/ansible-role-mash-nextcloud-talk-hpb/build/janus
         state: directory
         mode: "0755"
 
     - name: Ensure the Janus image source is staged
       ansible.builtin.copy:
         src: "{{ nextcloud_talk_hpb_molecule_project_directory }}/build/janus/{{ item }}"
-        dest: "/srv/ansible-role-nextcloud-talk-hpb/build/janus/{{ item }}"
+        dest: "/srv/ansible-role-mash-nextcloud-talk-hpb/build/janus/{{ item }}"
         mode: "{{ '0755' if item.endswith('.sh') else '0644' }}"
       loop:
         - Dockerfile
@@ -142,7 +142,7 @@
       ansible.builtin.shell:
         cmd: |
           set -eu
-          cd /srv/ansible-role-nextcloud-talk-hpb
+          cd /srv/ansible-role-mash-nextcloud-talk-hpb
           [ -d .git ] || git init -q -b main
           git -c user.email=molecule@example.invalid -c user.name=molecule add -A
           git -c user.email=molecule@example.invalid -c user.name=molecule \

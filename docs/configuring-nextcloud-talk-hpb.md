@@ -53,14 +53,14 @@ private packages, authenticate the target Docker daemon with a token that has
 
 | Service | Default image | Pinned version |
 | --- | --- | --- |
-| Janus | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb:1.4.3` | Janus `1.4.3` (`1f0b75ca`) |
-| Spreed signaling | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-spreed:2.1.1` | Spreed `2.1.1` (`e7a8fb7a`) |
+| Janus | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb:1.4.3` | Janus `1.4.3` (`1f0b75ca`) |
+| Spreed signaling | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb-spreed:2.1.1` | Spreed `2.1.1` (`e7a8fb7a`) |
 
 Overrides for the signaling image:
 
 | Variable | Default |
 | --- | --- |
-| `nextcloud_talk_hpb_signaling_container_image` | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-spreed:{{ nextcloud_talk_hpb_signaling_container_image_tag }}` |
+| `nextcloud_talk_hpb_signaling_container_image` | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb-spreed:{{ nextcloud_talk_hpb_signaling_container_image_tag }}` |
 | `nextcloud_talk_hpb_signaling_container_image_tag` | `2.1.1` |
 | `nextcloud_talk_hpb_signaling_container_image_pull` | `true` |
 
@@ -68,10 +68,10 @@ Overrides for Janus:
 
 | Variable | Default |
 | --- | --- |
-| `nextcloud_talk_hpb_janus_container_image` | `ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb:{{ nextcloud_talk_hpb_janus_container_image_tag }}` |
+| `nextcloud_talk_hpb_janus_container_image` | `ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb:{{ nextcloud_talk_hpb_janus_container_image_tag }}` |
 | `nextcloud_talk_hpb_janus_container_image_tag` | `1.4.3` |
 | `nextcloud_talk_hpb_janus_container_image_self_build` | `false` |
-| `nextcloud_talk_hpb_janus_container_image_self_build_repo` | `https://github.com/littlecedar/ansible-role-nextcloud-talk-hpb.git` |
+| `nextcloud_talk_hpb_janus_container_image_self_build_repo` | `https://github.com/littlecedar/ansible-role-mash-nextcloud-talk-hpb.git` |
 | `nextcloud_talk_hpb_janus_container_image_self_build_repo_version` | `v1.4.3-0` |
 
 Janus has no `_container_image_pull` toggle: its image is pulled unless
@@ -89,12 +89,14 @@ tables in this guide and the README. The publish workflow derives its tags from 
 Dockerfile ARGs; the role consumes the defaults tag. Janus upgrades are automated by
 `update-janus.sh` and its weekly workflow.
 
-The publish workflow builds both images, runs their smoke tests and the molecule
-scenario, and only then pushes to GHCR. It runs on pushes to `main` and on manual
-dispatch. Every run pushes `sha-<short>`; `edge`, `latest` and the service version are
-pushed only when the ref is `main`, so a manual dispatch on another branch pushes just
-`sha-<short>`. CI builds and smoke-tests both plus the molecule scenario on pull
-requests and on manual dispatch, without pushing anything.
+The publish workflow's `Lint` job runs `yamllint` and `ansible-lint`; the
+`Test and publish` job depends on it, builds both images, runs their smoke tests and the
+molecule scenario, and only then pushes to GHCR. It runs on pushes to `main` and on
+manual dispatch. Every run pushes `sha-<short>`; `edge`, `latest` and the service version
+are pushed only when the ref is `main`, so a manual dispatch on another branch pushes
+just `sha-<short>`. That is the only pipeline: nothing runs on pull requests, because a
+pull request created with `GITHUB_TOKEN` cannot trigger workflows, so the automated Janus
+update runs both gates inline before it opens its PR.
 
 ## Required variables
 

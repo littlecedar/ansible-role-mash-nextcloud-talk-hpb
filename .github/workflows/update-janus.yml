@@ -49,15 +49,15 @@ jobs:
           context: build/janus
           load: true
           provenance: false
-          tags: ansible-role-nextcloud-talk-hpb:update
+          tags: ansible-role-mash-nextcloud-talk-hpb:update
           cache-from: type=gha,scope=janus
           cache-to: type=gha,mode=max,scope=janus
 
-      # The PR is created with GITHUB_TOKEN, so `ci.yml` does not run for it:
+      # A pull request created with GITHUB_TOKEN cannot trigger workflows, so
       # both gates have to pass here, before the PR is opened.
       - name: Run the image smoke test
         if: steps.check.outputs.changed == 'true'
-        run: ./scripts/smoke-test-janus.sh ansible-role-nextcloud-talk-hpb:update
+        run: ./scripts/smoke-test-janus.sh ansible-role-mash-nextcloud-talk-hpb:update
 
       - name: Install molecule and its Docker driver
         if: steps.check.outputs.changed == 'true'

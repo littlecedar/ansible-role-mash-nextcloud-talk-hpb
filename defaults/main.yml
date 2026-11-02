@@ -101,7 +101,7 @@ nextcloud_talk_hpb_proxy_network_deletion_enabled: false
 # Built and published by this repository.
 nextcloud_talk_hpb_signaling_container_image_tag: "2.1.1"
 
-nextcloud_talk_hpb_signaling_container_image: "ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb-spreed:{{ nextcloud_talk_hpb_signaling_container_image_tag }}"
+nextcloud_talk_hpb_signaling_container_image: "ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb-spreed:{{ nextcloud_talk_hpb_signaling_container_image_tag }}"
 
 # Pull the published image before starting the container. Disable when the image is
 # built or loaded locally.
@@ -197,13 +197,13 @@ nextcloud_talk_hpb_signaling_container_cleanup_command: |
 # The Janus image tag is also the Janus release it was built from.
 nextcloud_talk_hpb_janus_container_image_tag: "1.4.3"
 
-nextcloud_talk_hpb_janus_container_image: "ghcr.io/littlecedar/ansible-role-nextcloud-talk-hpb:{{ nextcloud_talk_hpb_janus_container_image_tag }}"
+nextcloud_talk_hpb_janus_container_image: "ghcr.io/littlecedar/ansible-role-mash-nextcloud-talk-hpb:{{ nextcloud_talk_hpb_janus_container_image_tag }}"
 
 # Build the image locally from source instead of pulling it.
 # Useful when the GHCR image is unavailable to the host.
 nextcloud_talk_hpb_janus_container_image_self_build: false
 
-nextcloud_talk_hpb_janus_container_image_self_build_repo: "https://github.com/littlecedar/ansible-role-nextcloud-talk-hpb.git"
+nextcloud_talk_hpb_janus_container_image_self_build_repo: "https://github.com/littlecedar/ansible-role-mash-nextcloud-talk-hpb.git"
 
 nextcloud_talk_hpb_janus_container_image_self_build_repo_version: "v1.4.3-0"
 

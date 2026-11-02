@@ -119,7 +119,7 @@ RUN git clone https://github.com/meetecho/janus-gateway.git /src/janus \
 FROM ubuntu:${UBUNTU_VERSION} AS runtime
 ARG JANUS_VERSION
 
-LABEL org.opencontainers.image.title="ansible-role-nextcloud-talk-hpb" \
+LABEL org.opencontainers.image.title="ansible-role-mash-nextcloud-talk-hpb" \
       org.opencontainers.image.description="Janus MCU for Nextcloud Talk HPB" \
       org.opencontainers.image.licenses="AGPL-3.0" \
       org.opencontainers.image.version="${JANUS_VERSION}"

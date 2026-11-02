@@ -7,7 +7,7 @@
 # Image behavior smoke test for the Janus HPB container.
 set -euo pipefail
 
-image="${1:-ansible-role-nextcloud-talk-hpb:local}"
+image="${1:-ansible-role-mash-nextcloud-talk-hpb:local}"
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_root=$(cd "$script_dir/.." && pwd)

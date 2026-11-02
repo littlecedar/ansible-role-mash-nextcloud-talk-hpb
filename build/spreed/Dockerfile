@@ -25,7 +25,7 @@ FROM scratch AS runtime
 ARG SPREED_VERSION
 ARG SPREED_COMMIT
 
-LABEL org.opencontainers.image.title="ansible-role-nextcloud-talk-hpb-spreed" \
+LABEL org.opencontainers.image.title="ansible-role-mash-nextcloud-talk-hpb-spreed" \
       org.opencontainers.image.description="Nextcloud Talk Spreed signaling server" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later" \
       org.opencontainers.image.version="${SPREED_VERSION}" \
