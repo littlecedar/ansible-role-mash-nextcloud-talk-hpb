@@ -232,9 +232,9 @@ turnserver --use-auth-secret --static-auth-secret=<nextcloud_talk_hpb_turn_stati
 After a deployment, register the signaling server with the Nextcloud container:
 
 ```sh
-docker exec -u www-data <nextcloud_identifier> php occ talk:signaling:add \
+docker exec -u www-data <nextcloud_identifier>-server php occ talk:signaling:add \
   "https://<nextcloud_talk_hpb_hostname>" "<nextcloud_talk_hpb_signaling_secret>" --verify
-docker exec -u www-data <nextcloud_identifier> php occ talk:signaling:list
+docker exec -u www-data <nextcloud_identifier>-server php occ talk:signaling:list
 ```
 
 Then add the external TURN and STUN servers in the Talk admin settings, using the
